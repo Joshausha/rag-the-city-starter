@@ -78,7 +78,7 @@ def main() -> None:
     total_q = len(questions)
     try:
         from langchain_ollama import ChatOllama
-        llm = ChatOllama(model=naive_rag.MODEL, temperature=0)
+        llm = ChatOllama(model=naive_rag.MODEL, temperature=0, num_ctx=naive_rag.NUM_CTX)
         llm.invoke("Reply with: ok")  # fail fast before a full run
     except Exception as exc:
         print(f"[!] Ollama is unreachable ({type(exc).__name__}): {exc}", file=sys.stderr)

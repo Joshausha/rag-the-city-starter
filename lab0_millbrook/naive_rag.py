@@ -40,6 +40,10 @@ COLLECTION = "fortpoint_naive"  # Millbrook uses millbrook_naive via --collectio
 CHUNK_TOKENS = 500  # fixed size, no overlap — deliberately naive
 TOP_K = 3
 MODEL = os.environ.get("OLLAMA_MODEL", "granite3.1-dense:8b")
+# Ollama defaults this model to a 32768-token window, which reserves ~13GB and spills
+# off a 16GB GPU (measured 0.5 tok/s). 16384 fits entirely in GPU at 9.5GB -> ~9.4 tok/s,
+# ~19x faster, with ample room for larger top-k. Raise only if context actually overflows.
+NUM_CTX = int(os.environ.get("OLLAMA_NUM_CTX", "16384"))
 
 PROMPT = (
     "Answer the question using ONLY the context below.\n\n"
@@ -95,7 +99,7 @@ def generate(question: str, chunks: list[dict]) -> str | None:
     context = "\n\n---\n\n".join(f"[{c['source']}]\n{c['text']}" for c in chunks)
     try:
         from langchain_ollama import ChatOllama
-        llm = ChatOllama(model=MODEL, temperature=0)
+        llm = ChatOllama(model=MODEL, temperature=0, num_ctx=NUM_CTX)
         return llm.invoke(PROMPT.format(context=context, question=question)).content
     except Exception as exc:  # connection refused, model not pulled, ...
         print(f"\n[!] Could not reach Ollama ({type(exc).__name__}): {exc}", file=sys.stderr)
